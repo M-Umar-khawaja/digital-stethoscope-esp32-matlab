@@ -1,0 +1,15 @@
+The ESP32 already has this program. Only re-upload it if the board is new
+or was erased.
+
+1. Install Arduino IDE (arduino.cc/en/software).
+2. File -> Preferences -> "Additional boards manager URLs", add:
+   https://espressif.github.io/arduino-esp32/package_esp32_index.json
+3. Tools -> Board -> Boards Manager -> search "esp32" -> install
+   "esp32 by Espressif Systems" (version 2.0.17 was used).
+4. Open  stethoscope_esp32/stethoscope_esp32.ino
+5. Tools -> Board -> "ESP32 Dev Module";  Tools -> Port -> your COM port.
+6. Click Upload (arrow button). Wait for "Done uploading".
+7. Close Arduino IDE before starting the MATLAB dashboard.
+
+Check: Tools -> Serial Monitor at 921600 baud, type c and press Enter:
+it should print "# OK  bias is correct".

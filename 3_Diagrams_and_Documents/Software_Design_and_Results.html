@@ -1,0 +1,188 @@
+<title>Stethoscope Software Design</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* layout: single reading column (max 980px) with full-width tables; summary tiles first, then requirements, pipeline, design decisions, dashboard, verification, limits */
+:root{
+  --bg:#f5f7f6; --surface:#ffffff; --ink:#15201b; --muted:#5b6b64; --line:#d9e1dd;
+  --accent:#0f7a5a; --accent-soft:#e2f2ec; --s1:#2f6fd6; --s2:#c23d84;
+  --ok:#1f8a4c; --warn:#a86b00; --poor:#16808a; --code:#eef2f0;
+  --display:"Space Grotesk",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c1210; --surface:#141c19; --ink:#e4ece8; --muted:#93a59d; --line:#26332e;
+  --accent:#4ade80; --accent-soft:#16291f; --s1:#60a5fa; --s2:#f472b6;
+  --ok:#3fb950; --warn:#f0b429; --poor:#39c5cf; --code:#1a2420; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1210; --surface:#141c19; --ink:#e4ece8; --muted:#93a59d; --line:#26332e;
+  --accent:#4ade80; --accent-soft:#16291f; --s1:#60a5fa; --s2:#f472b6;
+  --ok:#3fb950; --warn:#f0b429; --poor:#39c5cf; --code:#1a2420; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font:15px/1.6 var(--body);margin:0}
+.wrap{max-width:980px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:32px 56px;display:flex;flex-direction:column;gap:36px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+h1{font-size:34px;line-height:1.15}
+h2{font-size:22px;padding-bottom:8px;border-bottom:1px solid var(--line)}
+h3{font-size:16px}
+p{margin:0;max-width:68ch}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.lede{color:var(--muted);font-size:16px}
+section{display:flex;flex-direction:column;gap:14px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.tile b{font:600 28px var(--display);font-variant-numeric:tabular-nums}
+.tile span{color:var(--muted);font-size:13px}
+.tile small{font:12px var(--mono);color:var(--muted)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:500 12px var(--mono);letter-spacing:.04em;text-transform:uppercase;color:var(--muted);background:var(--code)}
+tr:last-child td{border-bottom:none}
+td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+code{font:13px var(--mono);background:var(--code);padding:1px 5px;border-radius:4px}
+.chip{display:inline-block;font:500 11px var(--mono);padding:2px 8px;border-radius:99px;white-space:nowrap}
+.chip.ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.chip.warn{background:color-mix(in srgb,var(--warn) 20%,transparent);color:var(--warn)}
+.chip.todo{background:color-mix(in srgb,var(--poor) 18%,transparent);color:var(--poor)}
+.flow{display:grid;grid-template-columns:1fr;gap:8px}
+.step{display:grid;grid-template-columns:150px 1fr;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.step .k{font:500 13px var(--mono);color:var(--accent)}
+.step p{color:var(--ink);font-size:14px}
+.step p span{color:var(--muted)}
+.dash{background:#0b0f14;border-radius:12px;padding:12px;display:grid;grid-template-rows:auto 1fr auto;gap:8px;font:12px var(--mono);color:#8b98a5;overflow-x:auto}
+.dash .row{display:grid;gap:8px}
+.dash .hdr{grid-template-columns:auto 1fr auto auto auto;align-items:center;min-width:620px}
+.dash .body{grid-template-columns:1fr 210px;min-width:620px}
+.dash .p{background:#151b23;border:1px solid #26303b;border-radius:6px;padding:8px 10px}
+.dash .ttl{font-weight:600;font-size:10px;letter-spacing:.06em}
+.dash .hr{font:700 44px Consolas,var(--mono);color:#4ade80;line-height:1}
+.dash .res{border-left:4px solid #3fb950}
+.dash .res b{color:#3fb950;font:600 20px var(--display)}
+.dash svg{display:block;width:100%;height:auto}
+.dash .btn{background:#2563eb;color:#fff;border-radius:5px;padding:5px 10px;font-weight:600}
+.dash .btn2{background:#151b23;color:#e6edf3;border:1px solid #26303b;border-radius:5px;padding:5px 10px}
+.dash .bar{grid-template-columns:auto 1fr auto auto auto;align-items:center;min-width:620px}
+.lamp{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.card ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+@media (max-width:640px){.step{grid-template-columns:1fr;gap:4px}.two{grid-template-columns:1fr}h1{font-size:28px}}
+</style>
+
+<div class="wrap">
+<header style="display:flex;flex-direction:column;gap:10px">
+  <div class="eyebrow">FYP · Digital Stethoscope with Heart Sound Analysis · Software</div>
+  <h1>Stethoscope Software Design</h1>
+  <p class="lede">The MATLAB R2024b software from the USB cable onwards: live display, 20-second recording, S1/S2 detection, heart rate, intervals, signal quality and a normal/abnormal screening result trained on 6130 recordings from PhysioNet/CinC 2016 and CirCor 2022, with simulated-sensor copies so the model ignores the microphone. No MATLAB toolboxes are needed. Everything below was checked in GNU Octave 9.4; the dashboard window itself still has to be opened once in MATLAB.</p>
+</header>
+
+<section>
+  <h2>Results at a glance</h2>
+  <div class="tiles">
+    <div class="tile"><span>Normal / abnormal, balanced accuracy</span><b>84.0%</b><small>Se 82.4% · Sp 85.5% · 5851 public recordings, 2 datasets</small></div>
+    <div class="tile"><span>S1 / S2 detection</span><b>F1 91.6%</b><small>236 unseen annotated recordings</small></div>
+    <div class="tile"><span>Own device (ESP32 + MAX4466)</span><b>65.5%</b><small>42 device clips, held out · own heart called Normal 83%</small></div>
+    <div class="tile"><span>Automatic checks</span><b>All pass</b><small>in MATLAB R2024b · dashboard · real ESP32</small></div>
+  </div>
+</section>
+
+<section>
+  <h2>Proposal requirements and where they are met</h2>
+  <div class="tbl"><table>
+    <tr><th>Proposal item</th><th>Implementation</th><th>Status</th></tr>
+    <tr><td>Sample at 2–4 kHz, send to laptop</td><td>ESP32 streams 4000 samples/s at 921600 baud; <code>st_serial_parse</code> reads it, skipping status and boot text</td><td><span class="chip ok">verified</span></td></tr>
+    <tr><td>Butterworth band-pass 20–500 Hz, noise reduction</td><td>20–500 Hz for display and listening; 25–400 Hz for analysis; 50 Hz mains notches; Schmidt spike removal</td><td><span class="chip ok">verified</span></td></tr>
+    <tr><td>S1/S2 detection with envelope</td><td>Homomorphic, Hilbert, 40–60 Hz power and 125–250 Hz envelopes → duration-aware HSMM (Springer 2016)</td><td><span class="chip ok">F1 91.6%</span></td></tr>
+    <tr><td>Heart rate, S1–S2 interval, energy, spectrum</td><td>Autocorrelation heart rate; systole and diastole median ± SD; 124 features incl. band power and MFCC per state</td><td><span class="chip ok">verified</span></td></tr>
+    <tr><td>Classifier (SVM/CNN) on PhysioNet 2016</td><td>RBF SVM, class-weighted, own SMO solver; trained on PhysioNet 2016 + CirCor 2022 + simulated-sensor copies + 42 own-device clips; Platt-scaled confidence; separate decision threshold (0.80) for ESP32 input</td><td><span class="chip ok">84.0% CV</span></td></tr>
+    <tr><td>Live waveform and spectrogram</td><td>5 s scrolling trace and spectrogram, 20 updates/s</td><td><span class="chip ok">logic verified</span></td></tr>
+    <tr><td>Automatic heart rate</td><td>Live (last 8 s) and from the recording</td><td><span class="chip ok">verified</span></td></tr>
+    <tr><td>Recording save and playback</td><td>Save writes raw WAV, filtered WAV, results and a screenshot; Play uses <code>audioplayer</code></td><td><span class="chip todo">run in MATLAB</span></td></tr>
+    <tr><td>Normal vs abnormal output</td><td>Normal, Abnormal or Poor quality – retry, with confidence and a screening disclaimer</td><td><span class="chip ok">verified</span></td></tr>
+    <tr><td>Screening tool, not diagnosis</td><td>Disclaimer always visible; poor recordings are never classified</td><td><span class="chip ok">built in</span></td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>Processing chain</h2>
+  <div class="flow">
+    <div class="step"><div class="k">acquire</div><p>ESP32 ADC counts, 4 kHz → parser → ring buffer. <span>Live path: causal notch + 20–500 Hz filter, chunk by chunk, every 2nd sample kept.</span></p></div>
+    <div class="step"><div class="k">pre-process</div><p>Resample to 2 kHz (same as PhysioNet) → notches at 50–250 Hz (Q 35) → zero-phase 4th-order Butterworth 25–400 Hz → spike removal → unit variance.</p></div>
+    <div class="step"><div class="k">heart rate</div><p>Autocorrelation of the homomorphic envelope, lag 0.4–2 s (30–150 bpm), with a check against locking onto half the beat.</p></div>
+    <div class="step"><div class="k">segment</div><p>4 envelope features at 50 Hz → logistic-regression emissions trained on 270 hand-corrected recordings → extended Viterbi with Gaussian state durations. <span>Output: S1, systole, S2, diastole for every sample.</span></p></div>
+    <div class="step"><div class="k">quality</div><p>Clipping, too few cycles, implausible heart rate, then a 5-feature logistic quality score. <span>Poor recordings get a reason and a retry, never a diagnosis.</span></p></div>
+    <div class="step"><div class="k">classify</div><p>124 features (Potes 2016, challenge winner): durations and ratios, amplitude ratios, skewness and kurtosis, 9 band powers and 13 MFCCs per state → standardise → RBF SVM (C = 1, γ = 1/124) → probability.</p></div>
+  </div>
+</section>
+
+<section>
+  <h2>Design decisions</h2>
+  <div class="two">
+    <div class="card"><h3>Changed or added to the proposal</h3><ul>
+      <li><b>50 Hz notch added.</b> Mains hum in Pakistan sits inside 20–500 Hz, so a band-pass alone cannot remove it.</li>
+      <li><b>Two bands.</b> 20–500 Hz keeps the proposal's band for display and listening; 25–400 Hz matches the method the model was trained with.</li>
+      <li><b>HSMM instead of plain peak picking.</b> Envelope peaks alone confuse S1 with S2; the duration model uses the fact that systole is shorter than diastole.</li>
+      <li><b>Quality gate added.</b> Commercial analysers (Eko) check quality first; a noisy clip says "retry".</li>
+      <li><b>Live view + 20 s analysis.</b> Classification needs many beats and zero-phase filtering, which work on a finished clip.</li>
+    </ul></div>
+    <div class="card"><h3>Engineering choices</h3><ul>
+      <li><b>No toolboxes.</b> Butterworth design, filtfilt, Hilbert, spectrogram, logistic regression and SVM are written in plain MATLAB, so the app runs on any R2021a+ install.</li>
+      <li><b>Patient-grouped testing.</b> All recordings of one patient stay in one fold, so scores are not inflated.</li>
+      <li><b>Validation folder unused.</b> PhysioNet's "validation" files are copies of training files.</li>
+      <li><b>Same code live and offline.</b> The dashboard calls the same functions the tests check.</li>
+      <li><b>Simulated device.</b> Streams a PhysioNet recording in the ESP32's exact format, for testing without hardware.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section>
+  <h2>Dashboard</h2>
+  <p>Dark patient-monitor style. The heart sound and heart-rate number share one green; S1 is blue and S2 pink (safe for colour-blind viewers, also told apart by label); Normal is green, Abnormal amber, Poor quality cyan. Red is kept for failures and the recording state.</p>
+  <div class="dash" role="img" aria-label="Sketch of the dashboard layout">
+    <div class="row hdr"><span style="color:#e6edf3;font:600 15px var(--display)">Digital Stethoscope</span><span>Heart sound analysis</span><span class="btn2">COM5 ▾</span><span class="btn">Connect</span><span><i class="lamp" style="background:#3fb950"></i>Wiring: OK</span></div>
+    <div class="row body">
+      <div style="display:grid;gap:8px">
+        <div class="p"><div class="ttl">LIVE HEART SOUND (filtered 20–500 Hz)</div>
+          <svg viewBox="0 0 400 46"><path d="M0 23 H30 l3 -14 l3 26 l3 -18 l3 6 H80 l2 -9 l2 16 l2 -7 H150 l3 -15 l3 27 l3 -19 l3 7 H200 l2 -9 l2 16 l2 -7 H270 l3 -15 l3 26 l3 -18 l3 7 H320 l2 -9 l2 16 l2 -7 H400" fill="none" stroke="#4ade80" stroke-width="1.4"/></svg></div>
+        <div class="p"><div class="ttl">LIVE SPECTROGRAM</div>
+          <svg viewBox="0 0 400 34"><rect width="400" height="34" fill="#0e141a"/><g fill="#1f7a8c"><rect x="30" y="8" width="12" height="26"/><rect x="80" y="14" width="8" height="20"/><rect x="150" y="8" width="12" height="26"/><rect x="200" y="14" width="8" height="20"/><rect x="270" y="8" width="12" height="26"/><rect x="320" y="14" width="8" height="20"/></g><g fill="#4ade80"><rect x="32" y="22" width="8" height="12"/><rect x="152" y="22" width="8" height="12"/><rect x="272" y="22" width="8" height="12"/></g></svg></div>
+        <div class="p"><div class="ttl">RECORDING · S1 / S2 marked</div>
+          <svg viewBox="0 0 400 46"><g opacity=".35"><rect x="28" y="2" width="14" height="42" fill="#60a5fa"/><rect x="78" y="2" width="10" height="42" fill="#f472b6"/><rect x="148" y="2" width="14" height="42" fill="#60a5fa"/><rect x="198" y="2" width="10" height="42" fill="#f472b6"/><rect x="268" y="2" width="14" height="42" fill="#60a5fa"/><rect x="318" y="2" width="10" height="42" fill="#f472b6"/></g><path d="M0 23 H30 l3 -14 l3 26 l3 -18 l3 6 H80 l2 -9 l2 16 l2 -7 H150 l3 -15 l3 27 l3 -19 l3 7 H200 l2 -9 l2 16 l2 -7 H270 l3 -15 l3 26 l3 -18 l3 7 H320 l2 -9 l2 16 l2 -7 H400" fill="none" stroke="#4ade80" stroke-width="1.2"/></svg></div>
+      </div>
+      <div style="display:grid;gap:8px;align-content:start">
+        <div class="p"><div class="ttl">HEART RATE</div><span class="hr">72</span> <span>bpm</span><div>from recording</div></div>
+        <div class="p res"><div class="ttl">SCREENING RESULT</div><b>✓ Normal</b><div style="color:#e6edf3">Confidence 91% (High)</div><div style="font-style:italic">Screening aid only – not a diagnosis.</div></div>
+        <div class="p"><div class="ttl">INTERVALS (median ± SD)</div><div style="color:#e6edf3">S1→S2 systole  320 ± 14 ms</div><div style="color:#e6edf3">S2→S1 diastole 510 ± 31 ms</div></div>
+      </div>
+    </div>
+    <div class="row bar"><span class="btn">● Record 20 s</span><span style="height:8px;background:#222b35;border-radius:4px;display:block"><span style="display:block;width:62%;height:8px;background:#2563eb;border-radius:4px"></span></span><span class="btn2">▶ Play</span><span class="btn2">Save</span><span class="btn2">Open file</span></div>
+  </div>
+</section>
+
+<section>
+  <h2>Verification</h2>
+  <div class="tbl"><table>
+    <tr><th>Check</th><th>Method</th><th>Result</th></tr>
+    <tr><td>Butterworth design</td><td>Against MATLAB <code>butter(2,0.5)</code> coefficients; −3.01 dB at band edges</td><td class="num">match to 1e-5</td></tr>
+    <tr><td>Zero-phase and live filters</td><td>In-band sine keeps phase; chunked filtering equals one-shot filtering</td><td class="num">error &lt; 1e-12</td></tr>
+    <tr><td>SVM solver</td><td>Dual optimum compared with Octave's general QP solver</td><td class="num">−55.16642 vs −55.16642</td></tr>
+    <tr><td>Serial link</td><td>Real recording sent in ESP32 text format, 160 uneven chunks, boot garbage and status lines mixed in</td><td class="num">0 samples lost</td></tr>
+    <tr><td>Device path vs file path</td><td>Same recording as 4 kHz ADC counts and as 2 kHz WAV</td><td class="num">same result, same HR</td></tr>
+    <tr><td>Live heart rate</td><td>8 s live window vs full-clip analysis</td><td class="num">87.8 vs 89.5 bpm</td></tr>
+    <tr><td>Bad input</td><td>Clipping (gain 4× too high), 3 s clip, noise only</td><td class="num">all rejected with a reason</td></tr>
+    <tr><td>Classifier, 5-fold grouped CV</td><td>5851 recordings; PhysioNet part 88.3%, CirCor part 80.4% balanced</td><td class="num">Se 83.2% · Sp 86.2%</td></tr>
+    <tr><td>Different microphone only</td><td>Same patients, test clips through a simulated sensor; trained without / with simulated-sensor copies</td><td class="num">−4.5 → −2.1 pts</td></tr>
+    <tr><td>Different dataset entirely</td><td>Leave one of 7 databases out; PhysioNet ↔ CirCor (new patients, new label meaning and new sensor at once)</td><td class="num">balanced 56–58%</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2>Limits to state in the viva</h2>
+  <div class="two">
+    <div class="card"><h3>Device accuracy is preliminary</h3><p style="font-size:14px">On public recordings the classifier scores 84.0%. Through the real ESP32 + MAX4466 sensor, heart sounds look more "abnormal" (public model: 67% on device copies vs 83% on the originals). Calibration used 30 public recordings played through an earbud onto the diaphragm (checked to really carry the heartbeats) and 12 recordings of one healthy heart at 4 positions. With a device threshold of 0.80, held-out device clips score 65.5% (Se 47%, Sp 84%). More real patient recordings with the sensor are the main future work.</p></div>
+    <div class="card"><h3>Device signal quality</h3><ul>
+      <li>The PhysioNet-trained quality model could not separate good device clips from noise, so ESP32 input uses rule checks plus a spikiness test (log kurtosis ≥ 1.25: white noise 1.1, chest recordings ≥ 1.5).</li>
+      <li>Handling the chest piece and breathing cause most rejected clips; the dashboard's LEVEL meter helps set the gain before recording.</li>
+    </ul></div>
+  </div>
+</section>
+</div>

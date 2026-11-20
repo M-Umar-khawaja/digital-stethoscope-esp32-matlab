@@ -1,0 +1,51 @@
+Training report  2026-11-18 11:06  calibrated: 30 earbud playback + 12 own-heart clips, device threshold
+Recordings: 3240 PhysioNet 2016 + 2890 CirCor 2022; simulated-sensor copies: on
+
+SIGNAL QUALITY CHECK (PhysioNet 2016 labels, 5-fold CV grouped by patient)
+  poor recordings caught: 40.1%   good recordings accepted: 95.0%
+
+CLASSIFIER DATA: 5893 recordings (1088 abnormal, 4805 normal), 124 features
+  PhysioNet 2016-a         392 rec   276 abnormal
+  PhysioNet 2016-b         368 rec    73 abnormal
+  PhysioNet 2016-c          27 rec    20 abnormal
+  PhysioNet 2016-d          52 rec    26 abnormal
+  PhysioNet 2016-e        2013 rec   146 abnormal
+  PhysioNet 2016-f         109 rec    31 abnormal
+  CirCor 2022             2890 rec   499 abnormal
+  own device                42 rec    17 abnormal
+  own-device recordings are weighted 10x
+
+5-FOLD CROSS-VALIDATION, GROUPED BY PATIENT (settings search)
+  C=0.5  gamma=0.50/d  Se 0.786  Sp 0.876  MAcc 0.831
+  C=0.5  gamma=1.00/d  Se 0.775  Sp 0.887  MAcc 0.831
+  C=1    gamma=0.50/d  Se 0.789  Sp 0.876  MAcc 0.832
+  C=1    gamma=1.00/d  Se 0.768  Sp 0.899  MAcc 0.834
+  C=2    gamma=0.50/d  Se 0.791  Sp 0.887  MAcc 0.839
+  C=2    gamma=1.00/d  Se 0.733  Sp 0.918  MAcc 0.825
+
+BEST SETTINGS: C = 2, gamma = 0.50/d
+  all data (rule p>=0.5): sensitivity 82.4%  specificity 85.5%  MAcc 84.0%  accuracy 85.0%
+  confusion (rows true N/A, cols predicted N/A): [4110 695; 191 897]
+    PhysioNet 2016   Se 0.916  Sp 0.838  MAcc 0.877  (2961 rec)
+    CirCor 2022      Se 0.719  Sp 0.877  MAcc 0.798  (2890 rec)
+    own device       Se 0.824  Sp 0.400  MAcc 0.612  (42 rec)
+  own device, device threshold (leave-one-person-out): Se 0.471  Sp 0.840  MAcc 0.655
+    own heart (normal, 12 clips) called normal: 83%
+  device threshold used by the app: p(abnormal) >= 0.80
+
+LEAVE-ONE-DATABASE-OUT (train on the others, test on the one left out)
+  PhysioNet 2016-a       Se 0.467  Sp 0.793  MAcc 0.630
+  PhysioNet 2016-b       Se 0.767  Sp 0.231  MAcc 0.499
+  PhysioNet 2016-c       Se 0.850  Sp 0.143  MAcc 0.496
+  PhysioNet 2016-d       Se 0.846  Sp 0.308  MAcc 0.577
+  PhysioNet 2016-e       Se 0.781  Sp 0.580  MAcc 0.680
+  PhysioNet 2016-f       Se 0.419  Sp 0.615  MAcc 0.517
+  CirCor 2022            Se 0.565  Sp 0.588  MAcc 0.576
+  own device             Se 0.706  Sp 0.400  MAcc 0.553
+  pooled: Se 0.593  Sp 0.565  MAcc 0.579   |  mean MAcc over databases 0.566
+
+CROSS-DATASET (hardest new-sensor test)
+  train PhysioNet 2016 -> test CirCor:        Se 0.565  Sp 0.588  MAcc 0.576
+  train CirCor         -> test PhysioNet 2016: Se 0.150  Sp 0.918  MAcc 0.534
+
+FINAL MODEL: 4795 support vectors, trained on 11744 rows (5893 recordings + copies)

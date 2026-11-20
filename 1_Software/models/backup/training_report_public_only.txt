@@ -1,0 +1,44 @@
+Training report  2026-11-15 17:39  final: both datasets + simulated-sensor copies
+Recordings: 3240 PhysioNet 2016 + 2890 CirCor 2022; simulated-sensor copies: on
+
+SIGNAL QUALITY CHECK (PhysioNet 2016 labels, 5-fold CV grouped by patient)
+  poor recordings caught: 40.1%   good recordings accepted: 95.0%
+
+CLASSIFIER DATA: 5851 recordings (1071 abnormal, 4780 normal), 124 features
+  PhysioNet 2016-a         392 rec   276 abnormal
+  PhysioNet 2016-b         368 rec    73 abnormal
+  PhysioNet 2016-c          27 rec    20 abnormal
+  PhysioNet 2016-d          52 rec    26 abnormal
+  PhysioNet 2016-e        2013 rec   146 abnormal
+  PhysioNet 2016-f         109 rec    31 abnormal
+  CirCor 2022             2890 rec   499 abnormal
+
+5-FOLD CROSS-VALIDATION, GROUPED BY PATIENT (settings search)
+  C=0.5  gamma=0.50/d  Se 0.796  Sp 0.879  MAcc 0.837
+  C=0.5  gamma=1.00/d  Se 0.789  Sp 0.888  MAcc 0.838
+  C=1    gamma=0.50/d  Se 0.804  Sp 0.878  MAcc 0.841
+  C=1    gamma=1.00/d  Se 0.775  Sp 0.902  MAcc 0.839
+  C=2    gamma=0.50/d  Se 0.796  Sp 0.890  MAcc 0.843
+  C=2    gamma=1.00/d  Se 0.739  Sp 0.924  MAcc 0.831
+
+BEST SETTINGS: C = 2, gamma = 0.50/d
+  all data (rule p>=0.5): sensitivity 83.2%  specificity 86.2%  MAcc 84.7%  accuracy 85.7%
+  confusion (rows true N/A, cols predicted N/A): [4121 659; 180 891]
+    PhysioNet 2016   Se 0.927  Sp 0.840  MAcc 0.883  (2961 rec)
+    CirCor 2022      Se 0.723  Sp 0.885  MAcc 0.804  (2890 rec)
+
+LEAVE-ONE-DATABASE-OUT (train on the others, test on the one left out)
+  PhysioNet 2016-a       Se 0.467  Sp 0.784  MAcc 0.626
+  PhysioNet 2016-b       Se 0.822  Sp 0.159  MAcc 0.491
+  PhysioNet 2016-c       Se 0.950  Sp 0.286  MAcc 0.618
+  PhysioNet 2016-d       Se 0.846  Sp 0.308  MAcc 0.577
+  PhysioNet 2016-e       Se 0.767  Sp 0.561  MAcc 0.664
+  PhysioNet 2016-f       Se 0.419  Sp 0.615  MAcc 0.517
+  CirCor 2022            Se 0.523  Sp 0.605  MAcc 0.564
+  pooled: Se 0.575  Sp 0.563  MAcc 0.569   |  mean MAcc over databases 0.580
+
+CROSS-DATASET (hardest new-sensor test)
+  train PhysioNet 2016 -> test CirCor:        Se 0.523  Sp 0.605  MAcc 0.564
+  train CirCor         -> test PhysioNet 2016: Se 0.152  Sp 0.916  MAcc 0.534
+
+FINAL MODEL: 4761 support vectors, trained on 11702 rows (5851 recordings + copies)

@@ -1,0 +1,13 @@
+# files the dashboard creates when you press Save
+1_Software/recordings/
+
+# MATLAB / editor / OS clutter
+*.asv
+*.autosave
+*.m~
+.DS_Store
+Thumbs.db
+
+# archives and full datasets (download them from PhysioNet instead)
+*.zip
+data/circor/
