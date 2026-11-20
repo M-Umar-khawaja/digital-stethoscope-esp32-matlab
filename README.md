@@ -1,4 +1,4 @@
-# Digital Stethoscope: Heart Sound Analysis with ESP32 + MATLAB
+# Heart Sound Screening: ESP32 + MATLAB Digital Stethoscope
 
 ![MATLAB](https://img.shields.io/badge/MATLAB-R2024b-orange) ![No toolboxes](https://img.shields.io/badge/toolboxes-none%20required-brightgreen) ![ESP32](https://img.shields.io/badge/hardware-ESP32%20%2B%20MAX4466-blue) ![License](https://img.shields.io/badge/license-MIT-lightgrey)
 
@@ -7,6 +7,8 @@ A low-cost **digital stethoscope**: a microphone in the tube of an ordinary stet
 ![Dashboard](3_Diagrams_and_Documents/Dashboard_Screenshot.png)
 
 > **Not a medical device.** This is an educational and research project. The Normal / Abnormal result is a screening aid, not a diagnosis.
+
+This version includes the **Normal / Abnormal screening**. If you only want the live monitor and recorder, without any prediction, see [esp32-heart-sound-monitor](https://github.com/M-Umar-khawaja/esp32-heart-sound-monitor).
 
 ## Features
 
